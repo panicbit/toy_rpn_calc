@@ -2,6 +2,8 @@ use failure::Error;
 use std::str::FromStr;
 
 pub enum Expr {
+    Def(String),
+    Ident(String),
     Push(f64),
     Drop,
     Clear,
@@ -20,21 +22,18 @@ impl FromStr for Expr {
         let s = s.trim();
 
         Ok(match s {
-            | "drop"
-            | "," => Expr::Drop,
-            "clear" => Expr::Clear,
-            "swap" => Expr::Swap,
-            | "add"
-            | "+" => Expr::Add,
-            | "sub"
-            | "-" => Expr::Sub,
-            | "mul"
-            | "*" => Expr::Mul,
-            | "div"
-            | "/" => Expr::Div,
-            | "pow"
-            | "^" => Expr::Pow,
-            n => Expr::Push(n.parse()?),
+            | def if def.starts_with("def:") => {
+                let ident = &def["def:".len()..];
+                ensure!(!ident.is_empty(), "ident must not be empty");
+                ensure!(!starts_with_digit(ident), "ident must not start with a digit");
+                Expr::Def(ident.into())
+            },
+            | ident if !starts_with_digit(ident) => Expr::Ident(ident.into()),
+            | n => Expr::Push(n.parse()?),
         })
     }
+}
+
+fn starts_with_digit(s: &str) -> bool {
+    s.chars().next().map(|c| c.is_digit(10)).unwrap_or(false)
 }
